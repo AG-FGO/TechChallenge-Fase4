@@ -16,6 +16,8 @@ namespace Testes.Repository
         private readonly Mock<IAcaoRepository> _mockAcaoRepository;
         private readonly Mock<IServiceBusUseCase> _mockServiceBusUseCase;
 
+        private readonly List<Carteira> carteiras;
+
 
         public CarteiraRepositoryTeste() 
         {
@@ -24,17 +26,34 @@ namespace Testes.Repository
             _mockCarteiraUseCase = new Mock<ICarteiraUseCase>();
             _mockServiceBusUseCase = new Mock<IServiceBusUseCase>();
             _mockAcaoRepository = new Mock<IAcaoRepository>();
+
+            carteiras = new List<Carteira>();
+
+            carteiras.Add(new Carteira { Id = 1, Saldo = 10000, UsuarioId = 1 });
+            carteiras.Add(new Carteira { Id = 2, Saldo = 20000, UsuarioId = 2 });
         }
 
-        [Fact]
-        public void AdicionarValorCarteiraTeste()
+        [Theory]
+        [InlineData(1, 150)]
+        [InlineData(1, 1500)]
+        [InlineData(1, 9999)]
+        public void AdicionarValorCarteiraTeste(int id, float valor)
         {
             //Arrange
+            var service = new CarteiraUseCase(_mockCarteiraRepository.Object,
+                _mockServiceBusUseCase.Object,
+                _mockAcaoRepository.Object);
+
+
+            var carteira = carteiras.First(x => x.Id == id);
+
 
             //Act
-            _mockCarteiraRepository.Setup(x => x.AdicionarValorCarteira(It.IsAny<int>(), It.IsAny<float>()));
-           
+            carteira.Saldo += valor;
+
             //Assert
+            Assert.NotNull(carteira.Id);
+
         }
 
         [Theory]
@@ -47,7 +66,8 @@ namespace Testes.Repository
                 _mockServiceBusUseCase.Object,
                 _mockAcaoRepository.Object);
 
-            _mockCarteiraRepository.Setup(x => x.GetCarteiraByUsuarioID(It.IsAny<int>())).Returns(new Carteira(id, id, 1000));
+            _mockCarteiraRepository.Setup(x => x.GetCarteiraByUsuarioID(It.IsAny<int>())).Returns(carteiras.First(x=> x.Id == id));
+
 
             //Act
             var carteira = service.GetCarteiraByUsuarioID(id);
@@ -69,11 +89,22 @@ namespace Testes.Repository
             var service = new CarteiraUseCase(_mockCarteiraRepository.Object,
                 _mockServiceBusUseCase.Object,
                 _mockAcaoRepository.Object);
-            var carteira = new Carteira(1, 1, 20000);
-            _mockCarteiraRepository.Setup(x => x.RemoverValorCarteira(It.IsAny<int>(), It.IsAny<float>())).Returns(true);
+
+
+            var carteira = carteiras.First(x => x.Id == carteiraId);
+
+            if (carteiras.First(x => x.Id == carteiraId) != null)
+                _mockCarteiraRepository.Setup(x => x.RemoverValorCarteira(It.IsAny<int>(), It.IsAny<float>())).Returns(true);
+            else
+                _mockCarteiraRepository.Setup(x => x.RemoverValorCarteira(It.IsAny<int>(), It.IsAny<float>())).Returns(false);
+
+            if (service.RemoverValorCarteira(1, 1500) == true)
+                carteira.Saldo -= saldoRemover;
+
+
 
             //Assert
-
+            Assert.NotNull(carteira.Id);
         }
 
 
